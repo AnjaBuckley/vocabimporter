@@ -2,6 +2,7 @@ import json
 import os
 from typing import List, Dict, Optional
 from abc import ABC, abstractmethod
+import requests
 from ollama import Client
 
 # Try to import OpenAI, but don't fail if it's not available
@@ -65,24 +66,35 @@ class OpenAIProvider(LLMProvider):
 
 class OllamaProvider(LLMProvider):
     def __init__(self):
-        ollama_host = os.getenv('OLLAMA_HOST', 'http://localhost:11434')
-        self.client = Client(base_url=ollama_host)
+        self.ollama_host = os.getenv('OLLAMA_HOST', 'http://localhost:11434')
+        # Test connection to Ollama
+        try:
+            response = requests.get(f"{self.ollama_host}/api/tags")
+            if response.status_code != 200:
+                raise ConnectionError(f"Could not connect to Ollama at {self.ollama_host}")
+        except requests.exceptions.RequestException as e:
+            raise ConnectionError(f"Failed to connect to Ollama at {self.ollama_host}: {str(e)}")
+        
+        self.client = Client(base_url=self.ollama_host)
 
     def generate_vocabulary(self, topic: str, language: str, num_words: int, difficulty: str, include_examples: bool) -> List[Dict]:
         system_prompt = self._create_system_prompt(topic, language, num_words, difficulty, include_examples)
         
-        response = self.client.chat(
-            model='llama3.2',
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": f"Generate {num_words} {language} vocabulary words about {topic}"}
-            ]
-        )
-        
-        content = response['message']['content']
-        cleaned_content = self._clean_json_response(content)
-        vocab_data = json.loads(cleaned_content)
-        return vocab_data.get('words', [])
+        try:
+            response = self.client.chat(
+                model='llama3.2',
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": f"Generate {num_words} {language} vocabulary words about {topic}"}
+                ]
+            )
+            
+            content = response['message']['content']
+            cleaned_content = self._clean_json_response(content)
+            vocab_data = json.loads(cleaned_content)
+            return vocab_data.get('words', [])
+        except Exception as e:
+            raise Exception(f"Error generating vocabulary with Ollama: {str(e)}")
 
     def _clean_json_response(self, response_text: str) -> str:
         """Clean the response text by removing markdown backticks and finding the JSON content."""
@@ -119,20 +131,35 @@ class OllamaProvider(LLMProvider):
 
 def get_llm_provider() -> LLMProvider:
     """Factory function to get the appropriate LLM provider"""
-    # Try Ollama first
-    try:
-        return OllamaProvider()
-    except Exception as e:
-        print(f"Failed to initialize Ollama provider: {e}")
+    errors = []
     
-    # Fall back to OpenAI if available and configured
+    # Check if we're running on Streamlit Cloud
+    is_streamlit_cloud = os.getenv('STREAMLIT_RUNTIME') is not None
+    
+    # If we're on Streamlit Cloud and have OpenAI key, use OpenAI first
+    if is_streamlit_cloud and OPENAI_AVAILABLE and os.getenv('OPENAI_API_KEY'):
+        try:
+            return OpenAIProvider()
+        except Exception as e:
+            errors.append(f"OpenAI error: {str(e)}")
+    
+    # For local development, try Ollama first
+    if not is_streamlit_cloud:
+        try:
+            return OllamaProvider()
+        except Exception as e:
+            errors.append(f"Ollama error: {str(e)}")
+    
+    # If local Ollama failed or we're on cloud without OpenAI, try OpenAI as fallback
     if OPENAI_AVAILABLE and os.getenv('OPENAI_API_KEY'):
         try:
             return OpenAIProvider()
         except Exception as e:
-            print(f"Failed to initialize OpenAI provider: {e}")
+            if not any(err.startswith("OpenAI error") for err in errors):
+                errors.append(f"OpenAI error: {str(e)}")
     
-    raise Exception("No LLM provider available. Please ensure either Ollama is running or OpenAI API key is set.")
+    error_msg = "No LLM provider available:\n" + "\n".join(errors)
+    raise Exception(error_msg)
 
 def generate_vocabulary(topic: str, language: str, num_words: int, difficulty: str, include_examples: bool) -> List[Dict]:
     """
