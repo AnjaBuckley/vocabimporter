@@ -1,6 +1,6 @@
 # VocabImporter
 
-A Streamlit-based tool for generating and managing vocabulary for language learning applications. It uses Ollama's local LLM to generate vocabulary and can export directly to the Wortwunder backend.
+A Streamlit-based tool for generating and managing vocabulary for language learning applications. It uses OpenAI or Ollama's local LLM to generate vocabulary and can export directly to the Wortwunder backend.
 
 ## Features
 
@@ -10,14 +10,22 @@ A Streamlit-based tool for generating and managing vocabulary for language learn
 - Export vocabulary to JSON files
 - Import vocabulary from JSON files
 - Direct integration with Wortwunder backend
-- Docker support for easy deployment
+- Support for both OpenAI and local Ollama LLMs
 
 ## Prerequisites
 
-- Docker and Docker Compose
-- Ollama running locally with llama3.2 model installed
+For local development:
+- Docker and Docker Compose (if using Ollama)
+- Ollama running locally with llama3.2 model installed (optional)
+- OpenAI API key (optional)
+
+For cloud deployment:
+- OpenAI API key
+- Streamlit Cloud account
 
 ## Installation
+
+### Local Development
 
 1. Clone the repository:
 ```bash
@@ -27,7 +35,13 @@ cd vocabimporter
 
 2. Create a `.env` file:
 ```bash
+# If using Ollama
 OLLAMA_HOST=http://host.docker.internal:11434
+
+# If using OpenAI
+OPENAI_API_KEY=your_api_key_here
+
+# Backend configuration
 WORTWUNDER_BACKEND_URL=http://localhost:5000
 ```
 
@@ -37,6 +51,26 @@ docker-compose up --build
 ```
 
 4. Access the application at http://localhost:8501
+
+### Cloud Deployment
+
+1. Fork this repository to your GitHub account
+
+2. Sign up for [Streamlit Cloud](https://streamlit.io/cloud)
+
+3. Create a new app in Streamlit Cloud:
+   - Connect your GitHub account
+   - Select the forked repository
+   - Select the main branch
+   - Set the path to `app.py`
+
+4. Add the following secrets in Streamlit Cloud settings:
+   ```
+   OPENAI_API_KEY=your_api_key_here
+   WORTWUNDER_BACKEND_URL=your_backend_url
+   ```
+
+5. Deploy! Streamlit Cloud will automatically build and deploy your app
 
 ## Usage
 
@@ -57,23 +91,22 @@ docker-compose up --build
    - Review imported vocabulary
    - Export to Wortwunder backend
 
-## Docker Configuration
+## LLM Provider Configuration
 
-The application runs in a Docker container and connects to:
-- Local Ollama service for LLM functionality
-- Wortwunder backend for vocabulary storage
+The app supports two LLM providers:
 
-## Development
+1. **OpenAI (Recommended for cloud deployment)**
+   - Set `OPENAI_API_KEY` environment variable
+   - Uses GPT-3.5-turbo model
+   - Better suited for cloud deployment
 
-1. Install dependencies:
-```bash
-pip install -r requirements.txt
-```
+2. **Ollama (Local development)**
+   - Set `OLLAMA_HOST` environment variable
+   - Requires local Ollama installation
+   - Uses llama3.2 model
+   - Better for offline development
 
-2. Run locally:
-```bash
-streamlit run app.py
-```
+The app will automatically use OpenAI if an API key is provided, otherwise it will fall back to Ollama.
 
 ## Contributing
 
