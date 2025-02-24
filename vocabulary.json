@@ -1,0 +1,50 @@
+[
+  {
+    "word": "Blume",
+    "translation": "flower",
+    "part_of_speech": "noun",
+    "example_sentence": "Die Blume in meinem Garten ist schön."
+  },
+  {
+    "word": "Gewürz",
+    "translation": "herb",
+    "part_of_speech": "noun",
+    "example_sentence": "Der Tee enthält ein Gewürz, das ihn schmeckt."
+  },
+  {
+    "word": "Blüte",
+    "translation": "blossom",
+    "part_of_speech": "noun",
+    "example_sentence": "Die Blüte der Rose ist sehr schön."
+  },
+  {
+    "word": "Stiel",
+    "translation": "stem",
+    "part_of_speech": "noun",
+    "example_sentence": "Der Stiel der Blume hat viele Blätter."
+  },
+  {
+    "word": "Blatt",
+    "translation": "leaf",
+    "part_of_speech": "noun",
+    "example_sentence": "Das Blatt ist sehr groß und dunkelgrün."
+  },
+  {
+    "word": "Tintenfass",
+    "translation": "inkwell",
+    "part_of_speech": "none",
+    "note": "Not a flower, but a writing utensil that sometimes has flowers painted on it!"
+  },
+  {
+    "word": "Bienenstock",
+    "translation": "bee nest",
+    "part_of_speech": "noun",
+    "example_sentence": "Die Bienenbüchse ist voller Bienenstock."
+  },
+  {
+    "word": "Rosenkälber",
+    "translation": "rose cutter",
+    "part_of_speech": "noun",
+    "example_sentence": "Der Rosenkälber hilft mir, die Rosen zu schneiden."
+  }
+]
