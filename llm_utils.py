@@ -1,5 +1,6 @@
 import json
 import os
+import re
 from typing import List, Dict, Optional
 from abc import ABC, abstractmethod
 import requests
@@ -131,45 +132,90 @@ class OpenAIProvider(LLMProvider):
 class OllamaProvider(LLMProvider):
     def __init__(self):
         self.ollama_host = os.getenv('OLLAMA_HOST', 'http://localhost:11434')
-        # Test connection to Ollama
+        if not OLLAMA_AVAILABLE:
+            raise ImportError("Ollama package is not installed")
         try:
-            response = requests.get(f"{self.ollama_host}/api/tags")
-            if response.status_code != 200:
-                raise ConnectionError(f"Could not connect to Ollama at {self.ollama_host}")
-        except requests.exceptions.RequestException as e:
-            raise ConnectionError(f"Failed to connect to Ollama at {self.ollama_host}: {str(e)}")
-        
-        self.client = Client(base_url=self.ollama_host)
+            # Test connection
+            ollama.ping(host=self.ollama_host)
+        except Exception as e:
+            raise ConnectionError(f"Could not connect to Ollama server at {self.ollama_host}: {str(e)}")
 
     def generate_vocabulary(self, topic: str, language: str, num_words: int, difficulty: str, include_examples: bool) -> List[Dict]:
         system_prompt = self._create_system_prompt(topic, language, num_words, difficulty, include_examples)
         
         try:
-            response = self.client.chat(
-                model='llama3.2',
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": f"Generate {num_words} {language} vocabulary words about {topic}"}
-                ]
+            response = ollama.generate(
+                model='mistral',
+                prompt=system_prompt,
+                host=self.ollama_host
             )
             
-            content = response['message']['content']
-            cleaned_content = self._clean_json_response(content)
-            vocab_data = json.loads(cleaned_content)
-            return vocab_data.get('words', [])
+            # Get the response text
+            response_text = response['response']
+            print(f"Raw Ollama response: {response_text}")  # Debug print
+            
+            # Try to find and extract the JSON array
+            try:
+                # Find the first '[' and last ']' to extract the JSON array
+                start = response_text.find('[')
+                end = response_text.rfind(']') + 1
+                if start == -1 or end == 0:
+                    raise ValueError("No JSON array found in response")
+                
+                json_str = response_text[start:end]
+                print(f"Extracted JSON: {json_str}")  # Debug print
+                
+                # Parse the JSON
+                vocab_data = json.loads(json_str)
+                
+                # Ensure it's a list
+                if not isinstance(vocab_data, list):
+                    raise ValueError("Response is not a list of vocabulary items")
+                
+                # Validate each item has required fields
+                required_fields = ['word', 'translation', 'partOfSpeech', 'definition']
+                if include_examples:
+                    required_fields.append('example')
+                
+                for item in vocab_data:
+                    missing_fields = [field for field in required_fields if field not in item]
+                    if missing_fields:
+                        raise ValueError(f"Missing required fields: {missing_fields}")
+                
+                return vocab_data
+                
+            except json.JSONDecodeError as e:
+                print(f"JSON parsing error: {str(e)}")
+                # Try to clean the response and parse again
+                cleaned = self._clean_json_string(response_text)
+                print(f"Cleaned JSON: {cleaned}")  # Debug print
+                return json.loads(cleaned)
+                
         except Exception as e:
-            raise Exception(f"Error generating vocabulary with Ollama: {str(e)}")
+            raise ValueError(f"Error generating vocabulary with Ollama: {str(e)}")
 
-    def _clean_json_response(self, response_text: str) -> str:
-        """Clean the response text by removing markdown backticks and finding the JSON content."""
-        cleaned = response_text.strip('`')
-        if cleaned.startswith('json'):
-            cleaned = cleaned[4:]
-        start = cleaned.find('{')
-        end = cleaned.rfind('}')
-        if start != -1 and end != -1:
-            return cleaned[start:end+1]
-        return cleaned
+    def _clean_json_string(self, text: str) -> str:
+        """Clean and extract JSON from the response text."""
+        # Find the first '[' and last ']'
+        start = text.find('[')
+        end = text.rfind(']')
+        
+        if start == -1 or end == -1:
+            raise ValueError("Could not find JSON array in response")
+        
+        # Extract just the array part
+        json_text = text[start:end + 1]
+        
+        # Remove any trailing commas before closing brackets
+        json_text = re.sub(r',\s*}', '}', json_text)
+        json_text = re.sub(r',\s*]', ']', json_text)
+        
+        # Fix common formatting issues
+        json_text = json_text.replace('\\n', ' ')
+        json_text = json_text.replace('\n', ' ')
+        json_text = re.sub(r'\s+', ' ', json_text)
+        
+        return json_text
 
 def get_llm_provider() -> LLMProvider:
     """Get the first available LLM provider."""
