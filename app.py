@@ -5,6 +5,14 @@ from dotenv import load_dotenv, find_dotenv
 from llm_utils import generate_vocabulary, get_llm_provider
 import requests
 
+# Must be the first Streamlit command
+st.set_page_config(
+    page_title="VocabImporter - Language Learning Tool",
+    page_icon="📚",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
 # First try to load from .env file (local development)
 try:
     env_path = find_dotenv(raise_error_if_not_found=False)
@@ -61,13 +69,6 @@ def export_to_wortwunder(vocabulary_items, topic, difficulty):
             failed_items.append(item['word'])
     
     return success_count, failed_items
-
-st.set_page_config(
-    page_title="VocabImporter - Language Learning Tool",
-    page_icon="📚",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
 
 # Display app header with LLM provider info
 def main():
