@@ -52,7 +52,7 @@ docker-compose up --build
 
 4. Access the application at http://localhost:8501
 
-### Cloud Deployment
+### Cloud Deployment (Streamlit Cloud)
 
 1. Fork this repository to your GitHub account
 
@@ -64,13 +64,19 @@ docker-compose up --build
    - Select the main branch
    - Set the path to `app.py`
 
-4. Add the following secrets in Streamlit Cloud settings:
+4. Configure Streamlit Cloud secrets:
+   - Click on "Manage app" in the bottom right
+   - Go to the "Secrets" section
+   - Click "Edit Secrets"
+   - Add the following in TOML format:
+   ```toml
+   HUGGINGFACE_API_KEY = "your_huggingface_api_key"
    ```
-   HUGGINGFACE_API_KEY=your_api_key_here
-   WORTWUNDER_BACKEND_URL=your_backend_url
-   ```
+   - Note: Do NOT add OLLAMA_HOST for cloud deployment
 
-5. Deploy! Streamlit Cloud will automatically build and deploy your app
+5. Deploy:
+   - The app will automatically deploy
+   - If you make changes to your GitHub repository, Streamlit Cloud will automatically redeploy
 
 ## Usage
 
@@ -96,27 +102,37 @@ docker-compose up --build
 The app supports two LLM providers:
 
 1. **Hugging Face (Recommended)**
-   - Set `HUGGINGFACE_API_KEY` environment variable
+   - Set `HUGGINGFACE_API_KEY` environment variable or Streamlit secret
    - Uses Mixtral model
    - Better suited for both cloud and local deployment
    - Higher quality vocabulary generation
 
-2. **Ollama (Fallback option)**
-   - Set `OLLAMA_HOST` environment variable
+2. **Ollama (Local development only)**
+   - Set `OLLAMA_HOST` environment variable (local only)
    - Uses local Llama2 model
    - Good for local development and testing
    - No API key required
    - Requires more computational resources
 
-The app will automatically use Hugging Face if the API key is available, otherwise it will fall back to using Ollama.
+The app will automatically use Hugging Face if the API key is available, otherwise it will fall back to using Ollama (local development only).
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Streamlit Cloud Deployment**
+   - Make sure you've added the `HUGGINGFACE_API_KEY` in Streamlit Cloud secrets
+   - The app will not work with Ollama in cloud deployment
+   - Check the app logs in Streamlit Cloud for detailed error messages
+
+2. **Local Development**
+   - Ensure Docker and Docker Compose are installed
+   - Check that Ollama is running if you're not using Hugging Face
+   - Verify your `.env` file exists and contains the correct variables
 
 ## Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Commit changes
-4. Push to the branch
-5. Create a Pull Request
+Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
 
 ## License
 
