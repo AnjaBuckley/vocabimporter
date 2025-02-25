@@ -41,22 +41,28 @@ st.set_page_config(
 )
 
 # Display app header with LLM provider info
-st.title("📚 VocabImporter")
-
 def main():
+    st.title("📚 VocabImporter")
+    st.write("Generate and manage vocabulary for language learning")
+    
+    # Show provider status
     try:
         provider = get_llm_provider()
         provider_name = provider.__class__.__name__.replace('Provider', '')
-        is_cloud = os.getenv('STREAMLIT_RUNTIME') is not None
+        is_cloud = os.getenv('STREAMLIT_RUNTIME_ENV') is not None or os.getenv('STREAMLIT_RUNTIME') is not None
         env_context = "Streamlit Cloud" if is_cloud else "local environment"
-        st.info(f"Using {provider_name} for vocabulary generation in {env_context}")
+        st.success(f"✅ Using {provider_name} for vocabulary generation")
     except Exception as e:
-        st.error(f"Error initializing LLM provider: {str(e)}")
-        return
+        st.error("❌ Error: No LLM provider available")
+        if "OpenAI error" in str(e):
+            st.warning("Please check your OpenAI API key in Streamlit Cloud settings")
+        elif "Ollama error" in str(e) and not is_cloud:
+            st.warning("Please ensure Ollama is running locally")
+        else:
+            st.warning(str(e))
+        st.stop()
 
 main()
-
-st.write("Generate and manage vocabulary for language learning")
 
 tab1, tab2 = st.tabs(["Generate Vocabulary", "Import/Export"])
 

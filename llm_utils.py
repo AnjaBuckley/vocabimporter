@@ -134,29 +134,21 @@ def get_llm_provider() -> LLMProvider:
     errors = []
     
     # Check if we're running on Streamlit Cloud
-    is_streamlit_cloud = os.getenv('STREAMLIT_RUNTIME') is not None
+    is_streamlit_cloud = os.getenv('STREAMLIT_RUNTIME_ENV') is not None or os.getenv('STREAMLIT_RUNTIME') is not None
     
-    # If we're on Streamlit Cloud and have OpenAI key, use OpenAI first
-    if is_streamlit_cloud and OPENAI_AVAILABLE and os.getenv('OPENAI_API_KEY'):
+    # If we're on Streamlit Cloud or have OpenAI key, try OpenAI first
+    if (is_streamlit_cloud or os.getenv('OPENAI_API_KEY')) and OPENAI_AVAILABLE:
         try:
             return OpenAIProvider()
         except Exception as e:
             errors.append(f"OpenAI error: {str(e)}")
     
-    # For local development, try Ollama first
+    # Only try Ollama if we're not on Streamlit Cloud
     if not is_streamlit_cloud:
         try:
             return OllamaProvider()
         except Exception as e:
             errors.append(f"Ollama error: {str(e)}")
-    
-    # If local Ollama failed or we're on cloud without OpenAI, try OpenAI as fallback
-    if OPENAI_AVAILABLE and os.getenv('OPENAI_API_KEY'):
-        try:
-            return OpenAIProvider()
-        except Exception as e:
-            if not any(err.startswith("OpenAI error") for err in errors):
-                errors.append(f"OpenAI error: {str(e)}")
     
     error_msg = "No LLM provider available:\n" + "\n".join(errors)
     raise Exception(error_msg)
