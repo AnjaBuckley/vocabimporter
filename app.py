@@ -121,10 +121,12 @@ def main():
                     # Display vocabulary
                     st.write("### Generated Vocabulary")
                     for i, item in enumerate(vocabulary):
-                        with st.expander(f"{item['word']} - {item['translation']}", key=f"vocab_expander_{i}"):
-                            st.write(f"Part of Speech: {item['part_of_speech']}")
-                            if include_examples and 'example_sentence' in item:
-                                st.write(f"Example: {item['example_sentence']}")
+                        expander = st.expander(f"{item['word']} - {item['translation']}")
+                        with expander:
+                            st.write(f"Part of Speech: {item['partOfSpeech']}")
+                            st.write(f"Definition: {item['definition']}")
+                            if include_examples and 'example' in item:
+                                st.write(f"Example: {item['example']}")
                     
                     # Export options
                     st.write("### Export Options")
@@ -169,10 +171,12 @@ def main():
                 # Display imported vocabulary
                 st.write("### Imported Vocabulary")
                 for i, item in enumerate(imported_vocab.get('words', [])):
-                    with st.expander(f"{item['word']} - {item['translation']}", key=f"imported_vocab_{i}"):
-                        st.write(f"Part of Speech: {item['part_of_speech']}")
-                        if 'example_sentence' in item:
-                            st.write(f"Example: {item['example_sentence']}")
+                    expander = st.expander(f"{item['word']} - {item['translation']}")
+                    with expander:
+                        st.write(f"Part of Speech: {item['partOfSpeech']}")
+                        st.write(f"Definition: {item['definition']}")
+                        if 'example' in item:
+                            st.write(f"Example: {item['example']}")
                 
                 # Export imported vocabulary to Wortwunder
                 if st.button("🔄 Export Imported to Wortwunder", key="export_imported_btn"):
