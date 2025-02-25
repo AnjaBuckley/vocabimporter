@@ -24,12 +24,12 @@ class OpenAIProvider(LLMProvider):
         self.api_key = os.getenv('OPENAI_API_KEY')
         if not self.api_key:
             raise ValueError("OpenAI API key not found in environment variables")
-        openai.api_key = self.api_key
+        self.client = openai.OpenAI(api_key=self.api_key)
 
     def generate_vocabulary(self, topic: str, language: str, num_words: int, difficulty: str, include_examples: bool) -> List[Dict]:
         system_prompt = self._create_system_prompt(topic, language, num_words, difficulty, include_examples)
         
-        response = openai.ChatCompletion.create(
+        response = self.client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": system_prompt},
