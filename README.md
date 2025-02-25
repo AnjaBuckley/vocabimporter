@@ -33,15 +33,15 @@ git clone https://github.com/AnjaBuckley/vocabimporter.git
 cd vocabimporter
 ```
 
-2. Create a `.env` file:
+2. Create a `.env` file in the project root:
 ```bash
-# If using Ollama (fallback option)
-OLLAMA_HOST=http://ollama:11434
-
-# If using Hugging Face (recommended)
+# Required for Hugging Face (recommended)
 HUGGINGFACE_API_KEY=your_api_key_here
 
-# Backend configuration
+# Required for Ollama (alternative)
+OLLAMA_HOST=http://ollama:11434
+
+# Optional backend configuration
 WORTWUNDER_BACKEND_URL=http://localhost:5000
 ```
 
@@ -72,7 +72,7 @@ docker-compose up --build
    ```toml
    HUGGINGFACE_API_KEY = "your_huggingface_api_key"
    ```
-   - Note: Do NOT add OLLAMA_HOST for cloud deployment
+   - Note: Do NOT add OLLAMA_HOST for cloud deployment as it's not supported
 
 5. Deploy:
    - The app will automatically deploy
@@ -97,22 +97,38 @@ docker-compose up --build
    - Review imported vocabulary
    - Export to Wortwunder backend
 
+## Environment Configuration
+
+The app supports two types of environment configuration:
+
+1. **Local Development** (using `.env` file):
+   - Create a `.env` file in the project root
+   - Add your environment variables
+   - The app will automatically load these variables
+   - Don't worry about the "No secrets.toml found" warning - this is normal for local development
+
+2. **Cloud Deployment** (using Streamlit secrets):
+   - Configure via Streamlit Cloud dashboard
+   - Add secrets in TOML format
+   - No `.env` file needed
+   - Secrets are securely managed by Streamlit Cloud
+
 ## LLM Provider Configuration
 
 The app supports two LLM providers:
 
 1. **Hugging Face (Recommended)**
-   - Set `HUGGINGFACE_API_KEY` environment variable or Streamlit secret
+   - Set `HUGGINGFACE_API_KEY` in `.env` (local) or Streamlit secrets (cloud)
    - Uses Mixtral model
    - Better suited for both cloud and local deployment
    - Higher quality vocabulary generation
 
 2. **Ollama (Local development only)**
-   - Set `OLLAMA_HOST` environment variable (local only)
+   - Set `OLLAMA_HOST=http://ollama:11434` in `.env`
    - Uses local Llama2 model
    - Good for local development and testing
    - No API key required
-   - Requires more computational resources
+   - Not available in cloud deployment
 
 The app will automatically use Hugging Face if the API key is available, otherwise it will fall back to using Ollama (local development only).
 
@@ -120,15 +136,27 @@ The app will automatically use Hugging Face if the API key is available, otherwi
 
 ### Common Issues
 
-1. **Streamlit Cloud Deployment**
+1. **"No secrets.toml found" Warning (Local Development)**
+   - This warning is normal when running locally
+   - The app uses `.env` file instead of secrets.toml
+   - You can safely ignore this warning
+
+2. **Streamlit Cloud Deployment Issues**
    - Make sure you've added the `HUGGINGFACE_API_KEY` in Streamlit Cloud secrets
    - The app will not work with Ollama in cloud deployment
    - Check the app logs in Streamlit Cloud for detailed error messages
 
-2. **Local Development**
+3. **Local Development Issues**
    - Ensure Docker and Docker Compose are installed
    - Check that Ollama is running if you're not using Hugging Face
    - Verify your `.env` file exists and contains the correct variables
+   - Make sure there are no spaces or newlines in your API keys
+
+4. **API Key Issues**
+   - Ensure your Hugging Face API key is valid and has the correct permissions
+   - Remove any whitespace or newlines from the API key
+   - For local development, check the `.env` file
+   - For cloud deployment, check Streamlit Cloud secrets
 
 ## Contributing
 
