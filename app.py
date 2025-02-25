@@ -45,21 +45,24 @@ def main():
     st.title("📚 VocabImporter")
     st.write("Generate and manage vocabulary for language learning")
     
+    # Determine environment
+    is_cloud = os.getenv('STREAMLIT_RUNTIME_ENV') is not None or os.getenv('STREAMLIT_RUNTIME') is not None
+    
     # Show provider status
     try:
         provider = get_llm_provider()
         provider_name = provider.__class__.__name__.replace('Provider', '')
-        is_cloud = os.getenv('STREAMLIT_RUNTIME_ENV') is not None or os.getenv('STREAMLIT_RUNTIME') is not None
         env_context = "Streamlit Cloud" if is_cloud else "local environment"
         st.success(f"✅ Using {provider_name} for vocabulary generation")
     except Exception as e:
         st.error("❌ Error: No LLM provider available")
-        if "OpenAI error" in str(e):
+        error_msg = str(e)
+        if "OpenAI error" in error_msg:
             st.warning("Please check your OpenAI API key in Streamlit Cloud settings")
-        elif "Ollama error" in str(e) and not is_cloud:
+        elif "Ollama error" in error_msg and not is_cloud:
             st.warning("Please ensure Ollama is running locally")
         else:
-            st.warning(str(e))
+            st.warning(error_msg)
         st.stop()
 
 main()
