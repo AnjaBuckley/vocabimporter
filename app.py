@@ -5,24 +5,29 @@ from dotenv import load_dotenv, find_dotenv
 from llm_utils import generate_vocabulary, get_llm_provider
 import requests
 
-# Load environment variables
-env_path = find_dotenv(raise_error_if_not_found=True)
-print(f"Found .env at: {env_path}")
-load_dotenv(env_path)
+# Load environment variables from .env file if it exists (local development)
+# or from Streamlit secrets (cloud deployment)
+try:
+    env_path = find_dotenv(raise_error_if_not_found=False)
+    if env_path:
+        print(f"Found .env at: {env_path}")
+        load_dotenv(env_path)
+except IOError:
+    print("No .env file found, using Streamlit secrets")
+
+# Set environment variables from Streamlit secrets if they exist
+if 'HUGGINGFACE_API_KEY' in st.secrets:
+    os.environ['HUGGINGFACE_API_KEY'] = st.secrets['HUGGINGFACE_API_KEY']
+if 'OLLAMA_HOST' in st.secrets:
+    os.environ['OLLAMA_HOST'] = st.secrets['OLLAMA_HOST']
+if 'WORTWUNDER_BACKEND_URL' in st.secrets:
+    os.environ['WORTWUNDER_BACKEND_URL'] = st.secrets['WORTWUNDER_BACKEND_URL']
 
 # Debug: Print environment variables (masked)
-api_key = os.getenv('OPENAI_API_KEY', '').strip()  # Remove any whitespace
-if api_key:
-    masked_key = f"{api_key[:8]}...{api_key[-4:]}"
-    print(f"Loaded API key: {masked_key}")
-    print(f"API key length: {len(api_key)}")
-    print(f"API key starts with 'sk-': {api_key.startswith('sk-')}")
-    print("API key contains newlines:", "\n" in api_key)
-    print("API key contains spaces:", " " in api_key)
-    # Update the environment variable with cleaned key
-    os.environ['OPENAI_API_KEY'] = api_key
-else:
-    print("No API key found in environment")
+hf_key = os.getenv('HUGGINGFACE_API_KEY', '').strip()
+if hf_key:
+    masked_key = f"{hf_key[:8]}...{hf_key[-4:]}" if len(hf_key) > 12 else "***"
+    print(f"Loaded Hugging Face API key: {masked_key}")
 
 # Get backend URL from environment variable, default to localhost
 BACKEND_URL = os.getenv('WORTWUNDER_BACKEND_URL', 'http://localhost:5000')
