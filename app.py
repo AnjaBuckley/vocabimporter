@@ -1,8 +1,28 @@
-import streamlit as st
-import json
 import os
+import json
+import streamlit as st
+from dotenv import load_dotenv, find_dotenv
 from llm_utils import generate_vocabulary, get_llm_provider
 import requests
+
+# Load environment variables
+env_path = find_dotenv(raise_error_if_not_found=True)
+print(f"Found .env at: {env_path}")
+load_dotenv(env_path)
+
+# Debug: Print environment variables (masked)
+api_key = os.getenv('OPENAI_API_KEY', '').strip()  # Remove any whitespace
+if api_key:
+    masked_key = f"{api_key[:8]}...{api_key[-4:]}"
+    print(f"Loaded API key: {masked_key}")
+    print(f"API key length: {len(api_key)}")
+    print(f"API key starts with 'sk-': {api_key.startswith('sk-')}")
+    print("API key contains newlines:", "\n" in api_key)
+    print("API key contains spaces:", " " in api_key)
+    # Update the environment variable with cleaned key
+    os.environ['OPENAI_API_KEY'] = api_key
+else:
+    print("No API key found in environment")
 
 # Get backend URL from environment variable, default to localhost
 BACKEND_URL = os.getenv('WORTWUNDER_BACKEND_URL', 'http://localhost:5000')
@@ -169,20 +189,6 @@ def main():
         
             except Exception as e:
                 st.error(f"Error importing file: {str(e)}")
-
-# Add footer with GitHub link
-st.markdown("---")
-st.markdown(
-    """
-    <div style="text-align: center">
-        <p>
-            Made with ❤️ by Anja Buckley | 
-            <a href="https://github.com/AnjaBuckley/vocabimporter" target="_blank">GitHub Repository</a>
-        </p>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
 
 if __name__ == "__main__":
     main()

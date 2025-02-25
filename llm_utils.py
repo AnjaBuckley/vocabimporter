@@ -24,7 +24,16 @@ class OpenAIProvider(LLMProvider):
         self.api_key = os.getenv('OPENAI_API_KEY')
         if not self.api_key:
             raise ValueError("OpenAI API key not found in environment variables")
-        self.client = openai.OpenAI(api_key=self.api_key)
+        
+        # Debug: Print masked API key
+        masked_key = f"{self.api_key[:8]}...{self.api_key[-4:]}" if self.api_key else "None"
+        print(f"Initializing OpenAI client with key: {masked_key}")
+        
+        # Initialize client with explicit API key
+        self.client = openai.OpenAI(
+            api_key=self.api_key
+        )
+        print("OpenAI client initialized successfully")
 
     def generate_vocabulary(self, topic: str, language: str, num_words: int, difficulty: str, include_examples: bool) -> List[Dict]:
         system_prompt = self._create_system_prompt(topic, language, num_words, difficulty, include_examples)
