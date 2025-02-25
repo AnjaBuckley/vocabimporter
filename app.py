@@ -5,23 +5,27 @@ from dotenv import load_dotenv, find_dotenv
 from llm_utils import generate_vocabulary, get_llm_provider
 import requests
 
-# Load environment variables from .env file if it exists (local development)
-# or from Streamlit secrets (cloud deployment)
+# First try to load from .env file (local development)
 try:
     env_path = find_dotenv(raise_error_if_not_found=False)
     if env_path:
         print(f"Found .env at: {env_path}")
         load_dotenv(env_path)
 except IOError:
-    print("No .env file found, using Streamlit secrets")
+    print("No .env file found")
 
-# Set environment variables from Streamlit secrets if they exist
-if 'HUGGINGFACE_API_KEY' in st.secrets:
-    os.environ['HUGGINGFACE_API_KEY'] = st.secrets['HUGGINGFACE_API_KEY']
-if 'OLLAMA_HOST' in st.secrets:
-    os.environ['OLLAMA_HOST'] = st.secrets['OLLAMA_HOST']
-if 'WORTWUNDER_BACKEND_URL' in st.secrets:
-    os.environ['WORTWUNDER_BACKEND_URL'] = st.secrets['WORTWUNDER_BACKEND_URL']
+# Then try to load from Streamlit secrets (cloud deployment)
+try:
+    if st.secrets:
+        print("Found Streamlit secrets")
+        if 'HUGGINGFACE_API_KEY' in st.secrets:
+            os.environ['HUGGINGFACE_API_KEY'] = st.secrets['HUGGINGFACE_API_KEY']
+        if 'OLLAMA_HOST' in st.secrets:
+            os.environ['OLLAMA_HOST'] = st.secrets['OLLAMA_HOST']
+        if 'WORTWUNDER_BACKEND_URL' in st.secrets:
+            os.environ['WORTWUNDER_BACKEND_URL'] = st.secrets['WORTWUNDER_BACKEND_URL']
+except (FileNotFoundError, AttributeError):
+    print("No Streamlit secrets found, using environment variables only")
 
 # Debug: Print environment variables (masked)
 hf_key = os.getenv('HUGGINGFACE_API_KEY', '').strip()
