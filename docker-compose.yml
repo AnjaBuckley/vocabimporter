@@ -5,13 +5,31 @@ services:
     build: .
     ports:
       - "8501:8501"
+    volumes:
+      - .:/app
     environment:
-      - OLLAMA_HOST=http://host.docker.internal:11434
-      - WORTWUNDER_BACKEND_URL=http://host.docker.internal:5000
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+      - OLLAMA_HOST=http://ollama:11434
     healthcheck:
-      test: ["CMD", "curl", "--fail", "http://localhost:8501/_stcore/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8501"]
       interval: 30s
       timeout: 10s
       retries: 3
+    depends_on:
+      - ollama
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+volumes:
+  ollama_data:

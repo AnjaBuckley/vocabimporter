@@ -111,12 +111,24 @@ class HuggingFaceProvider(LLMProvider):
 
 class OllamaProvider(LLMProvider):
     def __init__(self):
-        self.ollama_host = os.getenv('OLLAMA_HOST', 'http://localhost:11434')
         if not OLLAMA_AVAILABLE:
             raise ImportError("Ollama package is not installed")
+        
+        self.ollama_host = os.getenv('OLLAMA_HOST', 'http://localhost:11434')
+        print(f"Initializing Ollama with host: {self.ollama_host}")
+        
+        try:
+            # Pull the model first
+            print("Pulling Mistral model...")
+            ollama.pull('mistral', host=self.ollama_host)
+            print("Mistral model pulled successfully")
+        except Exception as e:
+            print(f"Warning: Could not pull model: {str(e)}")
+        
         try:
             # Test connection
-            ollama.ping(host=self.ollama_host)
+            ollama.list(host=self.ollama_host)
+            print("Successfully connected to Ollama")
         except Exception as e:
             raise ConnectionError(f"Could not connect to Ollama server at {self.ollama_host}: {str(e)}")
 
@@ -124,6 +136,7 @@ class OllamaProvider(LLMProvider):
         system_prompt = self._create_system_prompt(topic, language, num_words, difficulty, include_examples)
         
         try:
+            print(f"Generating response with Ollama ({self.ollama_host})...")
             response = ollama.generate(
                 model='mistral',
                 prompt=system_prompt,
@@ -132,7 +145,7 @@ class OllamaProvider(LLMProvider):
             
             # Get the response text
             response_text = response['response']
-            print(f"Raw Ollama response: {response_text}")  # Debug print
+            print(f"Raw Ollama response: {response_text}")
             
             # Try to find and extract the JSON array
             try:
@@ -143,7 +156,7 @@ class OllamaProvider(LLMProvider):
                     raise ValueError("No JSON array found in response")
                 
                 json_str = response_text[start:end]
-                print(f"Extracted JSON: {json_str}")  # Debug print
+                print(f"Extracted JSON: {json_str}")
                 
                 # Parse the JSON
                 vocab_data = json.loads(json_str)
@@ -168,10 +181,11 @@ class OllamaProvider(LLMProvider):
                 print(f"JSON parsing error: {str(e)}")
                 # Try to clean the response and parse again
                 cleaned = self._clean_json_string(response_text)
-                print(f"Cleaned JSON: {cleaned}")  # Debug print
+                print(f"Cleaned JSON: {cleaned}")
                 return json.loads(cleaned)
                 
         except Exception as e:
+            print(f"Error generating vocabulary with Ollama: {str(e)}")
             raise ValueError(f"Error generating vocabulary with Ollama: {str(e)}")
 
     def _clean_json_string(self, text: str) -> str:
