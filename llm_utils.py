@@ -173,28 +173,28 @@ class OllamaProvider(LLMProvider):
 
 def get_llm_provider() -> LLMProvider:
     """Get the first available LLM provider."""
-    # Try Hugging Face first
-    if HUGGINGFACE_AVAILABLE:
+    # Try Hugging Face first if API key is available
+    if HUGGINGFACE_AVAILABLE and os.getenv('HUGGINGFACE_API_KEY'):
         try:
             return HuggingFaceProvider()
         except Exception as e:
             print(f"Hugging Face error: {str(e)}")
     
-    # Try OpenAI second
+    # Try Ollama second if not on Streamlit Cloud
+    if OLLAMA_AVAILABLE and not (os.getenv('STREAMLIT_RUNTIME_ENV') or os.getenv('STREAMLIT_RUNTIME')):
+        try:
+            return OllamaProvider()
+        except Exception as e:
+            print(f"Ollama error: {str(e)}")
+    
+    # Try OpenAI last
     if OPENAI_AVAILABLE:
         try:
             return OpenAIProvider()
         except Exception as e:
             print(f"OpenAI error: {str(e)}")
     
-    # Try Ollama last
-    if OLLAMA_AVAILABLE:
-        try:
-            return OllamaProvider()
-        except Exception as e:
-            print(f"Ollama error: {str(e)}")
-    
-    raise ValueError("No LLM provider available")
+    raise ValueError("No LLM provider available. Please ensure either Hugging Face API key is set, Ollama is running locally, or OpenAI API key is configured.")
 
 def generate_vocabulary(topic: str, language: str, num_words: int, difficulty: str, include_examples: bool) -> List[Dict]:
     """
