@@ -1,6 +1,6 @@
 # VocabImporter
 
-A Streamlit-based tool for generating and managing vocabulary for language learning applications. It uses OpenAI or Ollama's local LLM to generate vocabulary and can export directly to the Wortwunder backend.
+A Streamlit-based tool for generating and managing vocabulary for language learning applications. It uses Hugging Face's Mixtral model or Ollama's local LLM to generate vocabulary and can export directly to the Wortwunder backend.
 
 ## Features
 
@@ -10,17 +10,17 @@ A Streamlit-based tool for generating and managing vocabulary for language learn
 - Export vocabulary to JSON files
 - Import vocabulary from JSON files
 - Direct integration with Wortwunder backend
-- Support for both OpenAI and local Ollama LLMs
+- Support for both Hugging Face and local Ollama LLMs
 
 ## Prerequisites
 
 For local development:
-- Docker and Docker Compose (if using Ollama)
-- Ollama running locally with llama3.2 model installed (optional)
-- OpenAI API key (optional)
+- Docker and Docker Compose
+- Ollama running locally with llama2 model installed (optional)
+- Hugging Face API key (optional)
 
 For cloud deployment:
-- OpenAI API key
+- Hugging Face API key
 - Streamlit Cloud account
 
 ## Installation
@@ -35,11 +35,11 @@ cd vocabimporter
 
 2. Create a `.env` file:
 ```bash
-# If using Ollama
-OLLAMA_HOST=http://host.docker.internal:11434
+# If using Ollama (fallback option)
+OLLAMA_HOST=http://ollama:11434
 
-# If using OpenAI
-OPENAI_API_KEY=your_api_key_here
+# If using Hugging Face (recommended)
+HUGGINGFACE_API_KEY=your_api_key_here
 
 # Backend configuration
 WORTWUNDER_BACKEND_URL=http://localhost:5000
@@ -66,7 +66,7 @@ docker-compose up --build
 
 4. Add the following secrets in Streamlit Cloud settings:
    ```
-   OPENAI_API_KEY=your_api_key_here
+   HUGGINGFACE_API_KEY=your_api_key_here
    WORTWUNDER_BACKEND_URL=your_backend_url
    ```
 
@@ -95,18 +95,20 @@ docker-compose up --build
 
 The app supports two LLM providers:
 
-1. **OpenAI (Recommended for cloud deployment)**
-   - Set `OPENAI_API_KEY` environment variable
-   - Uses GPT-3.5-turbo model
-   - Better suited for cloud deployment
+1. **Hugging Face (Recommended)**
+   - Set `HUGGINGFACE_API_KEY` environment variable
+   - Uses Mixtral model
+   - Better suited for both cloud and local deployment
+   - Higher quality vocabulary generation
 
-2. **Ollama (Local development)**
+2. **Ollama (Fallback option)**
    - Set `OLLAMA_HOST` environment variable
-   - Requires local Ollama installation
-   - Uses llama3.2 model
-   - Better for offline development
+   - Uses local Llama2 model
+   - Good for local development and testing
+   - No API key required
+   - Requires more computational resources
 
-The app will automatically use OpenAI if an API key is provided, otherwise it will fall back to Ollama.
+The app will automatically use Hugging Face if the API key is available, otherwise it will fall back to using Ollama.
 
 ## Contributing
 
