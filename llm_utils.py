@@ -12,10 +12,87 @@ try:
 except ImportError:
     OPENAI_AVAILABLE = False
 
+# Try importing Hugging Face
+try:
+    from huggingface_hub import InferenceClient
+    HUGGINGFACE_AVAILABLE = True
+except ImportError:
+    HUGGINGFACE_AVAILABLE = False
+
+# Try importing Ollama
+try:
+    import ollama
+    OLLAMA_AVAILABLE = True
+except ImportError:
+    OLLAMA_AVAILABLE = False
+
 class LLMProvider(ABC):
     @abstractmethod
     def generate_vocabulary(self, topic: str, language: str, num_words: int, difficulty: str, include_examples: bool) -> List[Dict]:
         pass
+
+    def _create_system_prompt(self, topic: str, language: str, num_words: int, difficulty: str, include_examples: bool) -> str:
+        return f"""You are a language learning assistant. Generate {num_words} {difficulty}-level vocabulary words in {language} related to '{topic}'.
+For each word, provide:
+1. The word in {language}
+2. Its part of speech
+3. English translation
+4. Definition in {language}
+{"5. An example sentence in " + language if include_examples else ""}
+
+Format the response as a JSON array where each item has these fields:
+- word: string
+- partOfSpeech: string
+- translation: string
+- definition: string
+{"- example: string" if include_examples else ""}"""
+
+class HuggingFaceProvider(LLMProvider):
+    def __init__(self):
+        if not HUGGINGFACE_AVAILABLE:
+            raise ImportError("Hugging Face packages are not installed")
+        
+        self.api_key = os.getenv('HUGGINGFACE_API_KEY')
+        if not self.api_key:
+            raise ValueError("Hugging Face API key not found in environment variables")
+        
+        # Initialize client with Mistral model
+        self.client = InferenceClient(
+            model="mistralai/Mistral-7B-Instruct-v0.2",
+            token=self.api_key
+        )
+        print("Hugging Face client initialized successfully")
+
+    def generate_vocabulary(self, topic: str, language: str, num_words: int, difficulty: str, include_examples: bool) -> List[Dict]:
+        system_prompt = self._create_system_prompt(topic, language, num_words, difficulty, include_examples)
+        
+        # Format prompt for Mistral
+        prompt = f"<s>[INST]{system_prompt}[/INST]"
+        
+        # Generate response
+        response = self.client.text_generation(
+            prompt,
+            max_new_tokens=1024,
+            temperature=0.7,
+            top_p=0.95,
+            repetition_penalty=1.1,
+            do_sample=True
+        )
+        
+        # Extract JSON from response
+        try:
+            # Find the first '[' and last ']' to extract the JSON array
+            start = response.find('[')
+            end = response.rfind(']') + 1
+            if start == -1 or end == 0:
+                raise ValueError("No JSON array found in response")
+            
+            json_str = response[start:end]
+            return json.loads(json_str)
+        except Exception as e:
+            print(f"Error parsing response: {str(e)}")
+            print(f"Raw response: {response}")
+            raise ValueError("Failed to parse vocabulary from model response")
 
 class OpenAIProvider(LLMProvider):
     def __init__(self):
@@ -50,28 +127,6 @@ class OpenAIProvider(LLMProvider):
         content = response.choices[0].message.content
         vocab_data = json.loads(content)
         return vocab_data.get('words', [])
-
-    def _create_system_prompt(self, topic: str, language: str, num_words: int, difficulty: str, include_examples: bool) -> str:
-        return f"""You are a language learning expert. Generate {num_words} {language} words related to '{topic}' 
-        at {difficulty} level. For each word, provide:
-        1. The word in {language}
-        2. Its English translation
-        3. Part of speech
-        4. {"An example sentence" if include_examples else ""}
-        
-        Format the response EXACTLY as a JSON object with a 'words' key containing an array of word objects.
-        Example format:
-        {{
-            "words": [
-                {{
-                    "word": "example_word",
-                    "translation": "translation",
-                    "part_of_speech": "noun",
-                    "example_sentence": "This is an example."
-                }}
-            ]
-        }}
-        """
 
 class OllamaProvider(LLMProvider):
     def __init__(self):
@@ -116,51 +171,30 @@ class OllamaProvider(LLMProvider):
             return cleaned[start:end+1]
         return cleaned
 
-    def _create_system_prompt(self, topic: str, language: str, num_words: int, difficulty: str, include_examples: bool) -> str:
-        return f"""You are a language learning expert. Generate {num_words} {language} words related to '{topic}' 
-        at {difficulty} level. For each word, provide:
-        1. The word in {language}
-        2. Its English translation
-        3. Part of speech
-        4. {"An example sentence" if include_examples else ""}
-        
-        Format the response EXACTLY as a JSON object with a 'words' key containing an array of word objects.
-        Example format:
-        {{
-            "words": [
-                {{
-                    "word": "example_word",
-                    "translation": "translation",
-                    "part_of_speech": "noun",
-                    "example_sentence": "This is an example."
-                }}
-            ]
-        }}
-        """
-
 def get_llm_provider() -> LLMProvider:
-    """Factory function to get the appropriate LLM provider"""
-    errors = []
+    """Get the first available LLM provider."""
+    # Try Hugging Face first
+    if HUGGINGFACE_AVAILABLE:
+        try:
+            return HuggingFaceProvider()
+        except Exception as e:
+            print(f"Hugging Face error: {str(e)}")
     
-    # Check if we're running on Streamlit Cloud
-    is_streamlit_cloud = os.getenv('STREAMLIT_RUNTIME_ENV') is not None or os.getenv('STREAMLIT_RUNTIME') is not None
-    
-    # If we're on Streamlit Cloud or have OpenAI key, try OpenAI first
-    if (is_streamlit_cloud or os.getenv('OPENAI_API_KEY')) and OPENAI_AVAILABLE:
+    # Try OpenAI second
+    if OPENAI_AVAILABLE:
         try:
             return OpenAIProvider()
         except Exception as e:
-            errors.append(f"OpenAI error: {str(e)}")
+            print(f"OpenAI error: {str(e)}")
     
-    # Only try Ollama if we're not on Streamlit Cloud
-    if not is_streamlit_cloud:
+    # Try Ollama last
+    if OLLAMA_AVAILABLE:
         try:
             return OllamaProvider()
         except Exception as e:
-            errors.append(f"Ollama error: {str(e)}")
+            print(f"Ollama error: {str(e)}")
     
-    error_msg = "No LLM provider available:\n" + "\n".join(errors)
-    raise Exception(error_msg)
+    raise ValueError("No LLM provider available")
 
 def generate_vocabulary(topic: str, language: str, num_words: int, difficulty: str, include_examples: bool) -> List[Dict]:
     """
