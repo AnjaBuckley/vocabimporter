@@ -2,6 +2,11 @@
 
 A Streamlit-based tool for generating and managing vocabulary for language learning applications. It uses Hugging Face's Mixtral model or Ollama's local LLM to generate vocabulary and can export directly to the Wortwunder backend.
 
+<img width="1437" alt="Screenshot 2025-03-29 at 16 28 57" src="https://github.com/user-attachments/assets/647231e6-ce90-4f34-8f90-2996141a9543" />
+
+<img width="1461" alt="Screenshot 2025-03-29 at 16 29 23" src="https://github.com/user-attachments/assets/b44a9e61-4eaf-4003-8edd-f649a8c48e25" />
+
+
 ## Features
 
 - Generate vocabulary based on topics and difficulty levels
